@@ -36,6 +36,10 @@ typedef struct nosql_s {
 		} tarantool;
 		struct {
 			unsigned int database;
+			struct {
+				struct { unsigned int send; unsigned int recv; } set;
+				struct { unsigned int send; unsigned int recv; } get;
+			} stat; 
 		} redis;
 		struct { } memcached;
 		struct { } dynamodb;
@@ -45,9 +49,9 @@ typedef struct nosql_s {
 
 nosql_t *nosql_connect(unsigned int type, const char *host, const char *port, unsigned int no, ...);
 void nosql_auto_read(nosql_t *nosql);
-void nosql_latency(nosql_t *nosql, unsigned int thread_max, unsigned int iteration_max, unsigned int batch_max);
 void nosql_insert(nosql_t *nosql, unsigned int iteration_no, const char *value, unsigned int value_size);
 void nosql_select(nosql_t *nosql, unsigned int iteration_no);
+// double nosql_latency(nosql_t *nosql, unsigned int thread_max, unsigned int iteration_max, unsigned int batch_max);
 
 // Tarantool.
 
