@@ -2,14 +2,7 @@
 
 #include <getopt.h>
 
-struct {
-	unsigned int type;
-	char host[256];
-	char port[6];
-	unsigned int database_id;
-	unsigned int thread_count;
-	unsigned int iteration_count;
-} config;
+config_t config;
 stat_t stat;
 
 pid_t pid;

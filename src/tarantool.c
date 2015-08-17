@@ -64,36 +64,34 @@ void nosql_tarantool_select(nosql_t *nosql, const char *key, unsigned int key_si
 	__sync_fetch_and_add(&nosql->tarantool.stat.get.send, 1);				
 }
 
-void *nosql_tarantool_auto_read_routine(void *arg) {
-	nosql_t *nosql = (nosql_t*)arg;
+void nosql_tarantool_read(nosql_t *nosql, const unsigned int affect_stat) {
 	struct epoll_event event;
-	while(1) {
-		if(epoll_wait(nosql->epoll_fd, &event, 1, -1)) {
-			char buffer[1048576];
-			unsigned int header_offset = 0;
-			while(header_offset < 5) {
-				int recv_result = recv(nosql->socket_fd, buffer + header_offset, 5 - header_offset, MSG_NOSIGNAL);
-				if(recv_result > 0) header_offset += recv_result;
-			}
-			
-			const char *cpb = buffer;
-			int length = mp_decode_uint(&cpb); // check if length > buffer
-			
-			header_offset = 0;
-			while(header_offset < length) {
-				int recv_result = recv(nosql->socket_fd, buffer + header_offset, length - header_offset, MSG_NOSIGNAL);
-				if(recv_result > 0) header_offset += recv_result;
-			}
+	if(epoll_wait(nosql->epoll_fd, &event, 1, -1)) {
+		char buffer[1048576];
+		unsigned int header_offset = 0;
+		while(header_offset < 5) {
+			int recv_result = recv(nosql->socket_fd, buffer + header_offset, 5 - header_offset, MSG_NOSIGNAL);
+			if(recv_result > 0) header_offset += recv_result;
+		}
 
-			cpb = buffer;
+		const char *cpb = buffer;
+		int length = mp_decode_uint(&cpb); // check if length > buffer
 
-			mp_decode_map(&cpb);
-			mp_decode_uint(&cpb);
-			
-			int status = mp_decode_uint(&cpb);
+		header_offset = 0;
+		while(header_offset < length) {
+			int recv_result = recv(nosql->socket_fd, buffer + header_offset, length - header_offset, MSG_NOSIGNAL);
+			if(recv_result > 0) header_offset += recv_result;
+		}
 
+		cpb = buffer;
+
+		mp_decode_map(&cpb);
+		mp_decode_uint(&cpb);
+
+		int status = mp_decode_uint(&cpb);
+
+		if(affect_stat) {
 			if(status) __sync_fetch_and_add(&stat.error, 1);
-
 			if(nosql->tarantool.stat.set.send > nosql->tarantool.stat.set.recv) {
 				__sync_fetch_and_add(&nosql->tarantool.stat.set.recv, 1);				
 				__sync_fetch_and_add(&stat.set.recv, 1);				
@@ -103,8 +101,5 @@ void *nosql_tarantool_auto_read_routine(void *arg) {
 			}
 		}
 	}
-}
 
-void nosql_tarantool_auto_read(nosql_t *nosql) {
-	pthread_create(&nosql->thread_ar, NULL, nosql_tarantool_auto_read_routine, nosql);
 }

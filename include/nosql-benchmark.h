@@ -51,23 +51,22 @@ nosql_t *nosql_connect(unsigned int type, const char *host, const char *port, un
 void nosql_auto_read(nosql_t *nosql);
 void nosql_insert(nosql_t *nosql, unsigned int iteration_no, const char *value, unsigned int value_size);
 void nosql_select(nosql_t *nosql, unsigned int iteration_no);
-// double nosql_latency(nosql_t *nosql, unsigned int thread_max, unsigned int iteration_max, unsigned int batch_max);
+void nosql_read(nosql_t *nosql, const unsigned int affect_stat);
+void *nosql_auto_read_routine(void *arg); 
 
 // Tarantool.
 
 void nosql_tarantool_connect(nosql_t *nosql);
 void nosql_tarantool_insert(nosql_t *nosql, const char *key, unsigned int key_size, const char *value, unsigned int value_size);
 void nosql_tarantool_select(nosql_t *nosql, const char *key, unsigned int key_size);
-void *nosql_tarantool_auto_read_routine(void *arg); 
-void nosql_tarantool_auto_read(nosql_t *nosql);
+void nosql_tarantool_read(nosql_t *nosql, const unsigned int affect_stat);
 
 // Redis.
 
 void nosql_redis_connect(nosql_t *nosql);
 void nosql_redis_insert(nosql_t *nosql, const char *key, unsigned int key_size, const char *value, unsigned int value_size);
 void nosql_redis_select(nosql_t *nosql, const char *key, unsigned int key_size); 
-void *nosql_redis_auto_read_routine(void *arg); 
-void nosql_redis_auto_read(nosql_t *nosql); 
+void nosql_redis_read(nosql_t *nosql, const unsigned int affect_stat);
 
 // Memcached.
 
@@ -111,10 +110,21 @@ typedef struct memcached_get_request_s {
 	r.header.cas = 0x0000000000000000;
 
 void nosql_memcached_connect(nosql_t *nosql);
-void *nosql_memcached_auto_read_routine(void *arg); 
-void nosql_memcached_auto_read(nosql_t *nosql);
 void nosql_memcached_insert(nosql_t *nosql, unsigned int opaque, const char *key, unsigned int key_size, const char *value, unsigned int value_size);
 void nosql_memcached_select(nosql_t *nosql, unsigned int opaque, const char *key, unsigned int key_size);
+void nosql_memcached_read(nosql_t *nosql, const unsigned int affect_stat);
+
+// Config.
+
+typedef struct config_s {
+	unsigned int type;
+	char host[256];
+	char port[6];
+	unsigned int database_id;
+	unsigned int thread_count;
+	unsigned int iteration_count;
+} config_t;
+extern config_t config;
 
 // Stat.
 

@@ -58,18 +58,28 @@ nosql_t *nosql_connect(unsigned int type, const char *host, const char *port, un
 	return nosql;
 }
 
-void nosql_auto_read(nosql_t *nosql) {
+void nosql_read(nosql_t *nosql, const unsigned int affect_stat) {
 	switch(nosql->type) {
 	case NOSQL_TYPE_TARANTOOL:
-		nosql_tarantool_auto_read(nosql);
+		nosql_tarantool_read(nosql, affect_stat);
 		break;
 	case NOSQL_TYPE_REDIS:
-		nosql_redis_auto_read(nosql);
+		nosql_redis_read(nosql, affect_stat);
 		break;
 	case NOSQL_TYPE_MEMCACHED:
-		nosql_memcached_auto_read(nosql);
+		nosql_memcached_read(nosql, affect_stat);
 		break;
 	}
+
+}
+
+void *nosql_auto_read_routine(void *arg) {
+	nosql_t *nosql = (nosql_t*)arg;
+	while(1) nosql_tarantool_read(nosql, 1); 
+}
+
+void nosql_auto_read(nosql_t *nosql) {
+	pthread_create(&nosql->thread_ar, NULL, nosql_auto_read_routine, nosql);
 }
 
 void nosql_insert(nosql_t *nosql, unsigned int iteration_no, const char *value, unsigned int value_size) {

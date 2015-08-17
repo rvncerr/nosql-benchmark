@@ -32,28 +32,23 @@ void nosql_redis_select(nosql_t *nosql, const char *key, unsigned int key_size) 
 	__sync_add_and_fetch(&stat.get.send, 1);
 }
 
-void *nosql_redis_auto_read_routine(void *arg) {
-	nosql_t *nosql = (nosql_t*)arg;
+void nosql_redis_read(nosql_t *nosql, const unsigned int affect_stat) {
 	struct epoll_event event;
-	while(1) {
-		if(epoll_wait(nosql->epoll_fd, &event, 1, -1)) {
-			char buffer[1048576];
-			int recv_result = recv(nosql->socket_fd, buffer, 1048576, MSG_NOSIGNAL);
-			if(recv_result > 0) {
-				unsigned int plus = 0;
-				unsigned int dollar = 0;
-				for(unsigned int i = 0; i < recv_result; i++) {
-					if(buffer[i] == '+') plus++;
-					if(buffer[i] == '$') dollar++;
-				}
+	if(epoll_wait(nosql->epoll_fd, &event, 1, -1)) {
+		char buffer[1048576];
+		int recv_result = recv(nosql->socket_fd, buffer, 1048576, MSG_NOSIGNAL);
+		if(recv_result > 0) {
+			unsigned int plus = 0;
+			unsigned int dollar = 0;
+			for(unsigned int i = 0; i < recv_result; i++) {
+				if(buffer[i] == '+') plus++;
+				if(buffer[i] == '$') dollar++;
+			}
+			if(affect_stat) {
 				__sync_fetch_and_add(&stat.set.recv, plus);
 				__sync_fetch_and_add(&stat.get.recv, dollar);
 			}
 		}
 	}
-	return NULL;
-}
 
-void nosql_redis_auto_read(nosql_t *nosql) {
-	pthread_create(&nosql->thread_ar, NULL, nosql_redis_auto_read_routine, (void *)nosql);
 }
