@@ -25,11 +25,11 @@ void nosql_redis_insert(nosql_t *nosql, const char *key, unsigned int key_size, 
 	__sync_add_and_fetch(&stat.set.send, 1);
 }
 
-void nosql_redis_select(nosql_t *nosql, const char *key, unsigned int key_size) {
+void nosql_redis_select(nosql_t *nosql, const char *key, unsigned int key_size, const unsigned int affect_stat) {
 	char request[1024];
 	sprintf(request, "GET \"%s\"\r\n", key);
 	send(nosql->socket_fd, &request, strlen(request), MSG_NOSIGNAL);
-	__sync_add_and_fetch(&stat.get.send, 1);
+	if(affect_stat) __sync_add_and_fetch(&stat.get.send, 1);
 }
 
 void nosql_redis_read(nosql_t *nosql, const unsigned int affect_stat) {
@@ -45,8 +45,8 @@ void nosql_redis_read(nosql_t *nosql, const unsigned int affect_stat) {
 				if(buffer[i] == '$') dollar++;
 			}
 			if(affect_stat) {
-				__sync_fetch_and_add(&stat.set.recv, plus);
-				__sync_fetch_and_add(&stat.get.recv, dollar);
+				__sync_add_and_fetch(&stat.set.recv, plus);
+				__sync_add_and_fetch(&stat.get.recv, dollar);
 			}
 		}
 	}

@@ -30,10 +30,10 @@ void nosql_tarantool_insert(nosql_t *nosql, const char *key, unsigned int key_si
 
 	send(nosql->socket_fd, buffer, pb - buffer, MSG_NOSIGNAL);
 	__sync_add_and_fetch(&stat.set.send, 1);
-	__sync_fetch_and_add(&nosql->tarantool.stat.set.send, 1);				
+	__sync_add_and_fetch(&nosql->tarantool.stat.set.send, 1);				
 }
 
-void nosql_tarantool_select(nosql_t *nosql, const char *key, unsigned int key_size) {
+void nosql_tarantool_select(nosql_t *nosql, const char *key, unsigned int key_size, const unsigned int affect_stat) {
 	char buffer[1048576], *pbh, *pb;
 	pbh = buffer; pb = pbh + 5;
 
@@ -60,8 +60,11 @@ void nosql_tarantool_select(nosql_t *nosql, const char *key, unsigned int key_si
 	pbh = pb;
 
 	send(nosql->socket_fd, buffer, pb - buffer, MSG_NOSIGNAL);
-	__sync_add_and_fetch(&stat.get.send, 1);
-	__sync_fetch_and_add(&nosql->tarantool.stat.get.send, 1);				
+
+	if(affect_stat) {
+		__sync_add_and_fetch(&stat.get.send, 1);
+		__sync_add_and_fetch(&nosql->tarantool.stat.get.send, 1);
+	}
 }
 
 void nosql_tarantool_read(nosql_t *nosql, const unsigned int affect_stat) {
@@ -91,13 +94,13 @@ void nosql_tarantool_read(nosql_t *nosql, const unsigned int affect_stat) {
 		int status = mp_decode_uint(&cpb);
 
 		if(affect_stat) {
-			if(status) __sync_fetch_and_add(&stat.error, 1);
+			if(status) __sync_add_and_fetch(&stat.error, 1);
 			if(nosql->tarantool.stat.set.send > nosql->tarantool.stat.set.recv) {
-				__sync_fetch_and_add(&nosql->tarantool.stat.set.recv, 1);				
-				__sync_fetch_and_add(&stat.set.recv, 1);				
+				__sync_add_and_fetch(&nosql->tarantool.stat.set.recv, 1);				
+				__sync_add_and_fetch(&stat.set.recv, 1);				
 			} else if(nosql->tarantool.stat.get.send > nosql->tarantool.stat.get.recv) {
-				__sync_fetch_and_add(&nosql->tarantool.stat.get.recv, 1);				
-				__sync_fetch_and_add(&stat.get.recv, 1);				
+				__sync_add_and_fetch(&nosql->tarantool.stat.get.recv, 1);				
+				__sync_add_and_fetch(&stat.get.recv, 1);				
 			}
 		}
 	}

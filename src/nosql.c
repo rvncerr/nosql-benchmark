@@ -70,7 +70,6 @@ void nosql_read(nosql_t *nosql, const unsigned int affect_stat) {
 		nosql_memcached_read(nosql, affect_stat);
 		break;
 	}
-
 }
 
 void *nosql_auto_read_routine(void *arg) {
@@ -80,6 +79,27 @@ void *nosql_auto_read_routine(void *arg) {
 
 void nosql_auto_read(nosql_t *nosql) {
 	pthread_create(&nosql->thread_ar, NULL, nosql_auto_read_routine, nosql);
+}
+
+void nosql_latency(nosql_t *nosql) {
+	unsigned int thread_rand = rand() % config.thread_count;
+	unsigned int iteration_rand = rand() % config.iteration_count;
+	unsigned int batch_rand = 0;
+	char key[32]; sprintf(key, "%05u_%03u_%010u_%04u", pid, thread_rand, iteration_rand, batch_rand);
+
+	struct timeval start, stop, diff;
+	gettimeofday(&start, NULL);
+	nosql_select(nosql, key, strlen(key), 0);
+	nosql_read(nosql, 0);
+	gettimeofday(&stop, NULL);
+	timersub(&stop, &start, &diff);
+
+	unsigned int diff_num = diff.tv_sec*1e6 + diff.tv_usec;
+
+	__sync_add_and_fetch(&stat.latency.hard.count, 1);
+	__sync_add_and_fetch(&stat.latency.soft.count, 1);
+	__sync_add_and_fetch(&stat.latency.hard.time, diff_num);
+	__sync_add_and_fetch(&stat.latency.soft.time, diff_num);
 }
 
 void nosql_insert(nosql_t *nosql, unsigned int iteration_no, const char *value, unsigned int value_size) {
@@ -97,17 +117,16 @@ void nosql_insert(nosql_t *nosql, unsigned int iteration_no, const char *value, 
 	}
 }
 
-void nosql_select(nosql_t *nosql, unsigned int iteration_no) {
-	char key[32]; sprintf(key, "%05u_%03u_%010u_0000", pid, nosql->no, iteration_no);
+void nosql_select(nosql_t *nosql, const char *key, unsigned int key_size, const unsigned int affect_stat) {
 	switch(nosql->type) {
 	case NOSQL_TYPE_TARANTOOL:
-		nosql_tarantool_select(nosql, key, strlen(key));
+		nosql_tarantool_select(nosql, key, strlen(key), affect_stat);
 		break;
 	case NOSQL_TYPE_REDIS:
-		nosql_redis_select(nosql, key, strlen(key)); // why strlen
+		nosql_redis_select(nosql, key, strlen(key), affect_stat); // why strlen use key_size
 		break;
 	case NOSQL_TYPE_MEMCACHED:
-		nosql_memcached_select(nosql, iteration_no * 100 + nosql->no, key, strlen(key));
+		nosql_memcached_select(nosql, 0, key, strlen(key), affect_stat);
 		break;
 	}
 }

@@ -11,6 +11,7 @@
 #include <pthread.h>    // pthread_create.
 #include <sys/epoll.h>  // epoll_create, epoll_ctl, epoll_wait.
 #include <stdarg.h>     // va_list.
+#include <sys/time.h>   // gettimeofday, timersub.
 
 #include <msgpuck/msgpuck.h>
 
@@ -48,24 +49,26 @@ typedef struct nosql_s {
 } nosql_t;
 
 nosql_t *nosql_connect(unsigned int type, const char *host, const char *port, unsigned int no, ...);
-void nosql_auto_read(nosql_t *nosql);
 void nosql_insert(nosql_t *nosql, unsigned int iteration_no, const char *value, unsigned int value_size);
-void nosql_select(nosql_t *nosql, unsigned int iteration_no);
+void nosql_select(nosql_t *nosql, const char *key, unsigned int key_size, const unsigned int affect_stat);
 void nosql_read(nosql_t *nosql, const unsigned int affect_stat);
+
 void *nosql_auto_read_routine(void *arg); 
+void nosql_auto_read(nosql_t *nosql);
+void nosql_latency(nosql_t *nosql);
 
 // Tarantool.
 
 void nosql_tarantool_connect(nosql_t *nosql);
 void nosql_tarantool_insert(nosql_t *nosql, const char *key, unsigned int key_size, const char *value, unsigned int value_size);
-void nosql_tarantool_select(nosql_t *nosql, const char *key, unsigned int key_size);
+void nosql_tarantool_select(nosql_t *nosql, const char *key, unsigned int key_size, const unsigned int affect_stat);
 void nosql_tarantool_read(nosql_t *nosql, const unsigned int affect_stat);
 
 // Redis.
 
 void nosql_redis_connect(nosql_t *nosql);
 void nosql_redis_insert(nosql_t *nosql, const char *key, unsigned int key_size, const char *value, unsigned int value_size);
-void nosql_redis_select(nosql_t *nosql, const char *key, unsigned int key_size); 
+void nosql_redis_select(nosql_t *nosql, const char *key, unsigned int key_sizel, const unsigned int affect_stat);
 void nosql_redis_read(nosql_t *nosql, const unsigned int affect_stat);
 
 // Memcached.
@@ -111,7 +114,7 @@ typedef struct memcached_get_request_s {
 
 void nosql_memcached_connect(nosql_t *nosql);
 void nosql_memcached_insert(nosql_t *nosql, unsigned int opaque, const char *key, unsigned int key_size, const char *value, unsigned int value_size);
-void nosql_memcached_select(nosql_t *nosql, unsigned int opaque, const char *key, unsigned int key_size);
+void nosql_memcached_select(nosql_t *nosql, unsigned int opaque, const char *key, unsigned int key_size, const unsigned int affect_stat);
 void nosql_memcached_read(nosql_t *nosql, const unsigned int affect_stat);
 
 // Config.
@@ -131,7 +134,7 @@ extern config_t config;
 typedef struct stat_s {
 	struct { unsigned long long send; unsigned long long recv; } set;
 	struct { unsigned long long send; unsigned long long recv; } get;
-	struct { unsigned int count; double time; } latency;
+	struct { struct { unsigned long long count; unsigned long long time; } hard; struct { unsigned long long count; unsigned long long time; } soft; } latency;
 	unsigned int error;
 } stat_t;
 extern stat_t stat;

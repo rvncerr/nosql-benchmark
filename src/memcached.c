@@ -12,12 +12,12 @@ void nosql_memcached_insert(nosql_t *nosql, unsigned int opaque, const char *key
 	__sync_add_and_fetch(&stat.set.send, 1);
 }
 
-void nosql_memcached_select(nosql_t *nosql, unsigned int opaque, const char *key, unsigned int key_size) {
+void nosql_memcached_select(nosql_t *nosql, unsigned int opaque, const char *key, unsigned int key_size, const unsigned int affect_stat) {
 	memcached_get_request_t request;
 	MEMCACHED_FILL_GET_REQUEST(request, opaque, key_size);
 	send(nosql->socket_fd, &request, sizeof(request), MSG_NOSIGNAL);
 	send(nosql->socket_fd, key, key_size, MSG_NOSIGNAL);
-	__sync_add_and_fetch(&stat.get.send, 1);
+	if(affect_stat) __sync_add_and_fetch(&stat.get.send, 1);
 }
 
 void nosql_memcached_read(nosql_t *nosql, const unsigned int affect_stat) {
@@ -38,9 +38,9 @@ void nosql_memcached_read(nosql_t *nosql, const unsigned int affect_stat) {
 		}
 
 		if(affect_stat) {
-			if(header.opcode == 0x01) __sync_fetch_and_add(&stat.set.recv, 1);
-			if(header.opcode == 0x00) __sync_fetch_and_add(&stat.get.recv, 1);
-			if(ntohs(header.status)) __sync_fetch_and_add(&stat.error, 1);
+			if(header.opcode == 0x01) __sync_add_and_fetch(&stat.set.recv, 1);
+			if(header.opcode == 0x00) __sync_add_and_fetch(&stat.get.recv, 1);
+			if(ntohs(header.status)) __sync_add_and_fetch(&stat.error, 1);
 		}
 	}
 }

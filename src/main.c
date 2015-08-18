@@ -11,13 +11,30 @@ pthread_t *benchmark;
 pthread_barrier_t barrier;
 
 void *visual_routine(void *arg) {
-	printf("n;set.send;set.recv;get.send;get.recv;error;\n");
+	printf("n;set.send;set.recv;get.send;get.recv;latency.soft;latency.hard;error\n");
 	unsigned int i = 0;
 	while(1) {
-		printf("%u;%llu;%llu;%llu;%llu;%u;\n", i, stat.set.send, stat.set.recv, stat.get.send, stat.get.recv, stat.error);
+		printf("%u;%llu;%llu;%llu;%llu;%f;%f;%u\n",
+			i,
+			stat.set.send,
+			stat.set.recv,
+			stat.get.send,
+			stat.get.recv,
+			stat.latency.soft.count ? 1e-6 * stat.latency.soft.time / stat.latency.soft.count : 0,
+			stat.latency.hard.count ? 1e-6 * stat.latency.hard.time / stat.latency.hard.count : 0,
+			stat.error);
+		
+		stat.latency.hard.time = 0;
+		stat.latency.hard.count = 0;
+		
 		i++;
 		sleep(1);
 	}
+}
+
+void *latency_routine(void *arg) {
+	nosql_t *nosql = (nosql_t*) arg;
+	while(1) nosql_latency(nosql);
 }
 
 void *benchmark_routine(void *arg) {
@@ -27,7 +44,8 @@ void *benchmark_routine(void *arg) {
 	}
 	pthread_barrier_wait(&barrier);
 	for(unsigned int i = 0; i < config.iteration_count; i++) {
-		nosql_select(nosql, i);
+		char key[32]; sprintf(key, "%05u_%03u_%010u_0000", pid, nosql->no, i);
+		nosql_select(nosql, key, strlen(key), 1);
 	}
 }
 
@@ -85,6 +103,10 @@ int main(int argc, char **argv) {
 	pthread_t visual;
 	pthread_create(&visual, NULL, visual_routine, NULL);
 
+	nosql_t *nosql_for_latency = nosql_connect(config.type, config.host, config.port, 0);
+	pthread_t latency;
+	pthread_create(&latency, NULL, latency_routine, nosql_for_latency);
+
 	pthread_barrier_init(&barrier, NULL, config.thread_count + 1);
 
 	pid = getpid();
@@ -92,7 +114,7 @@ int main(int argc, char **argv) {
 	if(!nosql) { fprintf(stderr, "Cannot alloc connection array!\n"); return 1; }
 	for(unsigned int i = 0; i < config.thread_count; i++) {
 		if(config.type == NOSQL_TYPE_TARANTOOL) {
-			nosql[i] = nosql_connect(config.type, config.host, config.port, i, config.database_id);
+			nosql[i] = nosql_connect(config.type, config.host, config.port, i);
 		} else {
 			nosql[i] = nosql_connect(config.type, config.host, config.port, i);
 		}
@@ -114,7 +136,7 @@ int main(int argc, char **argv) {
 	} break_context;
 
 	break_context.last = 0;
-	break_context.limit = 60;
+	break_context.limit = 10;
 	while(1) {
 		if(stat.set.recv >= config.thread_count * config.iteration_count) {
 			break;
@@ -128,14 +150,14 @@ int main(int argc, char **argv) {
 			}
 		} else {
 			break_context.last = stat.set.recv;
-			break_context.limit = 60;
+			break_context.limit = 10;
 		}
 	}
 	
 	pthread_barrier_wait(&barrier);
 
 	break_context.last = 0;
-	break_context.limit = 60;
+	break_context.limit = 10;
 	while(1) {
 		if(stat.get.recv >= config.thread_count * config.iteration_count) {
 			break;
@@ -149,7 +171,7 @@ int main(int argc, char **argv) {
 			}
 		} else {
 			break_context.last = stat.get.recv;
-			break_context.limit = 60;
+			break_context.limit = 10;
 		}
 	}
 
