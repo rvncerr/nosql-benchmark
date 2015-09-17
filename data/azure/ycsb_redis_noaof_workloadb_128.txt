@@ -1,0 +1,24 @@
+YCSB Client 0.1
+Command line: -db com.yahoo.ycsb.db.RedisClient -s -P workloads/workloadb -p redis.host=nosql-1.cloudapp.net -threads 128 -t
+[OVERALL], RunTime(ms), 253017.0
+[OVERALL], Throughput(ops/sec), 19761.518000766748
+[CLEANUP], Operations, 128.0
+[CLEANUP], AverageLatency(us), 81.6875
+[CLEANUP], MinLatency(us), 37.0
+[CLEANUP], MaxLatency(us), 346.0
+[CLEANUP], 95thPercentileLatency(us), 132.0
+[CLEANUP], 99thPercentileLatency(us), 218.0
+[READ], Operations, 4750924.0
+[READ], AverageLatency(us), 6297.645523902298
+[READ], MinLatency(us), 294.0
+[READ], MaxLatency(us), 432639.0
+[READ], 95thPercentileLatency(us), 8775.0
+[READ], 99thPercentileLatency(us), 13967.0
+[READ], Return=0, 4750924
+[UPDATE], Operations, 249076.0
+[UPDATE], AverageLatency(us), 6359.882256821211
+[UPDATE], MinLatency(us), 322.0
+[UPDATE], MaxLatency(us), 332543.0
+[UPDATE], 95thPercentileLatency(us), 8847.0
+[UPDATE], 99thPercentileLatency(us), 14775.0
+[UPDATE], Return=0, 249076
