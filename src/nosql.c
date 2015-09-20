@@ -74,7 +74,15 @@ void nosql_read(nosql_t *nosql, const unsigned int affect_stat) {
 
 void *nosql_auto_read_routine(void *arg) {
 	nosql_t *nosql = (nosql_t*)arg;
-	while(1) nosql_tarantool_read(nosql, 1); 
+	switch(nosql->type) {
+	case NOSQL_TYPE_TARANTOOL:
+		while(1) nosql_tarantool_read(nosql, 1); 
+	case NOSQL_TYPE_REDIS:
+		while(1) nosql_redis_read(nosql, 1); 
+	case NOSQL_TYPE_MEMCACHED:
+		while(1) nosql_memcached_read(nosql, 1); 
+	}
+
 }
 
 void nosql_auto_read(nosql_t *nosql) {
@@ -105,39 +113,39 @@ void nosql_latency(nosql_t *nosql) {
 void nosql_insert(nosql_t *nosql, unsigned int iteration_no, const char *value, unsigned int value_size) {
 	char key[32]; sprintf(key, "%05u_%03u_%010u_0000", pid, nosql->no, iteration_no);
 	switch(nosql->type) {
-	case NOSQL_TYPE_TARANTOOL:
-		nosql_tarantool_insert(nosql, key, strlen(key), value, value_size);
-		break;
-	case NOSQL_TYPE_REDIS:
-		nosql_redis_insert(nosql, key, strlen(key), value, value_size); // why strlen?
-		break;
-	case NOSQL_TYPE_MEMCACHED:
-		nosql_memcached_insert(nosql, iteration_no * 100 + nosql->no, key, strlen(key), value, value_size);
-		break;
+		case NOSQL_TYPE_TARANTOOL:
+			nosql_tarantool_insert(nosql, key, strlen(key), value, value_size);
+			break;
+		case NOSQL_TYPE_REDIS:
+			nosql_redis_insert(nosql, key, strlen(key), value, value_size); // why strlen?
+			break;
+		case NOSQL_TYPE_MEMCACHED:
+			nosql_memcached_insert(nosql, iteration_no * 100 + nosql->no, key, strlen(key), value, value_size);
+			break;
 	}
 }
 
 void nosql_select(nosql_t *nosql, const char *key, unsigned int key_size, const unsigned int affect_stat) {
 	switch(nosql->type) {
-	case NOSQL_TYPE_TARANTOOL:
-		nosql_tarantool_select(nosql, key, strlen(key), affect_stat);
-		break;
-	case NOSQL_TYPE_REDIS:
-		nosql_redis_select(nosql, key, strlen(key), affect_stat); // why strlen use key_size
-		break;
-	case NOSQL_TYPE_MEMCACHED:
-		nosql_memcached_select(nosql, 0, key, strlen(key), affect_stat);
-		break;
+		case NOSQL_TYPE_TARANTOOL:
+			nosql_tarantool_select(nosql, key, strlen(key), affect_stat);
+			break;
+		case NOSQL_TYPE_REDIS:
+			nosql_redis_select(nosql, key, strlen(key), affect_stat); // why strlen use key_size
+			break;
+		case NOSQL_TYPE_MEMCACHED:
+			nosql_memcached_select(nosql, 0, key, strlen(key), affect_stat);
+			break;
 	}
 }
 
 /*double nosql_latency(nosql_t *nosql, unsigned int thread_max, unsigned int iteration_max, unsigned int batch_max) {
-	unsigned int thread_rand = thread_max ? rand() % thread_max : 0;
-	unsigned int iteration_rand = iteration_max ? rand() % iteration_max : 0;
-	unsigned int batch_rand = batch_max ? rand() % batch_max : 0;
-	char key[32]; sprintf(key, "%05u_%03u_%010u_%04u", pid, thread_rand, iteration_rand, batch_rand);
-	switch(nosql->type) {
-	case NOSQL_TYPE_MEMCACHED:
-		return nosql_memcached_latency(nosql, key, strlen(key));
-	}
-}*/
+  unsigned int thread_rand = thread_max ? rand() % thread_max : 0;
+  unsigned int iteration_rand = iteration_max ? rand() % iteration_max : 0;
+  unsigned int batch_rand = batch_max ? rand() % batch_max : 0;
+  char key[32]; sprintf(key, "%05u_%03u_%010u_%04u", pid, thread_rand, iteration_rand, batch_rand);
+  switch(nosql->type) {
+  case NOSQL_TYPE_MEMCACHED:
+  return nosql_memcached_latency(nosql, key, strlen(key));
+  }
+  }*/

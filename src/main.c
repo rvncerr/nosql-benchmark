@@ -100,6 +100,9 @@ int main(int argc, char **argv) {
 		}
 	}
 
+	printf("%d\n", config.type);
+
+
 	pthread_t visual;
 	pthread_create(&visual, NULL, visual_routine, NULL);
 
