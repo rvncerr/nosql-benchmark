@@ -1,0 +1,4 @@
+YCSB Client 0.1
+Command line: -db com.yahoo.ycsb.db.RedisClient -s -P workloads/workloadf -p redis.host=nosql-3.cloudapp.net -threads 32 -t
+[OVERALL], RunTime(ms), 179.0
+[OVERALL], Throughput(ops/sec), 0.0
