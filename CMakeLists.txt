@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(nosql-benchmark)
-set(CMAKE_C_FLAGS "-std=gnu11 -ggdb -O0 -Iinclude -I/usr/local/include -L/usr/local/lib/x86_64-linux-gnu/ -pthread")
+set(CMAKE_C_FLAGS "-std=gnu11 -ggdb -O0 -I${CMAKE_SOURCE_DIR}/include -I/usr/local/include -L/usr/local/lib/x86_64-linux-gnu/ -pthread")
 
 add_library(tarantool STATIC src/tarantool.c)
 target_link_libraries(tarantool msgpuck)
