@@ -20,14 +20,14 @@ void nosql_redis_connect(nosql_t *nosql) {
 
 void nosql_redis_insert(nosql_t *nosql, const char *key, unsigned int key_size, const char *value, unsigned int value_size) {
 	char request[1024];
-	sprintf(request, "SET \"%s\" \"%s\"\r\n", key, value);
+	sprintf(request, "*3\r\n$3\r\nSET\r\n$%d\r\n%s\r\n$%d\r\n%s\r\n", strlen(key), key, strlen(value), value);
 	send(nosql->socket_fd, &request, strlen(request), MSG_NOSIGNAL);
 	__sync_add_and_fetch(&stat.set.send, 1);
 }
 
 void nosql_redis_select(nosql_t *nosql, const char *key, unsigned int key_size, const unsigned int affect_stat) {
 	char request[1024];
-	sprintf(request, "GET \"%s\"\r\n", key);
+	sprintf(request, "*2\r\n$3\r\nGET\r\n$%d\r\n%s\r\n", strlen(key), key);
 	send(nosql->socket_fd, &request, strlen(request), MSG_NOSIGNAL);
 	if(affect_stat) __sync_add_and_fetch(&stat.get.send, 1);
 }
